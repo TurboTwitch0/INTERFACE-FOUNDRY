@@ -34,7 +34,7 @@ const workflows = {
 };
 
 const themes = {
-  editorial: { summary: 'Warm. Literate. Considered.', caption: 'Paper + ink / Serif headlines / Fine rules', color: '#d5f05a' },
+  editorial: { summary: 'Sharp. Clear. Intentional.', caption: 'Mint + ink / Condensed headlines / Fine rules', color: '#c7ee96' },
   studio: { summary: 'Quiet. Friendly. Purposeful.', caption: 'Sage + pine / Bold sans / Soft corners', color: '#b2dec1' },
   terminal: { summary: 'Precise. Direct. Focused.', caption: 'Phosphor + forest / Monospace / Dashed rules', color: '#b4ed71' }
 };
@@ -143,6 +143,17 @@ function updateEntries() {
 
 wireTabs(workflowTabs, setWorkflow, true);
 wireTabs(directionTabs, setDirection);
+
+const artStage = document.querySelector('#hero-stage');
+const artThemeButtons = [...document.querySelectorAll('[data-art-theme-option]')];
+artThemeButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    const name = button.dataset.artThemeOption;
+    if (!artStage || !['mint', 'paper', 'ink'].includes(name)) return;
+    artStage.dataset.artTheme = name;
+    artThemeButtons.forEach(option => option.setAttribute('aria-pressed', String(option === button)));
+  });
+});
 
 document.querySelector('#copy-prompt').addEventListener('click', () => {
   copyFrom(document.querySelector('#workflow-prompt'), 'Prompt copied. Paste it into your coding agent.');
