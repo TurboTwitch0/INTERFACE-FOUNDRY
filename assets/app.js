@@ -306,8 +306,13 @@ document.querySelector('#skill-source').addEventListener('click', event => {
 });
 retrySkillButton.addEventListener('click', loadCurrentSkill);
 document.querySelector('#close-skill').addEventListener('click', () => skillDialog.close());
-skillDialog.addEventListener('click', event => { if (event.target === skillDialog) skillDialog.close(); });
+skillDialog.addEventListener('click', event => {
+  if (event.target !== skillDialog) return;
+  const rect = skillDialog.getBoundingClientRect();
+  if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) skillDialog.close();
+});
 skillDialog.addEventListener('close', () => {
+  if (skillDialog.open) return;
   skillRequestId += 1;
   currentSkillText = null;
   dialogTrigger?.focus();
