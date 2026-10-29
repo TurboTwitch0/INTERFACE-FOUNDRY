@@ -1,35 +1,31 @@
 import { createNotesStore } from './notes-store.js';
+import { buildPrompt } from './prompt-builder.js';
 
 const workflows = {
   direction: {
     title: 'Set a direction.\nThen commit to it.',
     description: 'Define the audience, the main task, and a visual point of view. Turn those decisions into a small set of design tokens that your agent can actually follow.',
-    output: 'A DESIGN.md with typography, color, spacing, interaction rules, and the reasons behind them.',
-    prompt: 'Use foundry-direction to define a calm, editorial interface for a research notes app. Prioritize scanning and retrieval. Create DESIGN.md before changing components.'
+    output: 'A DESIGN.md with typography, color, spacing, interaction rules, and the reasons behind them.'
   },
   audit: {
     title: 'Find the friction.\nFix what matters.',
     description: 'Inspect the interface around a real user task. Look for unclear hierarchy, inaccessible controls, inconsistent components, and broken states. Tie every finding to observable evidence.',
-    output: 'A prioritized audit: the problem, its evidence, its user impact, and a concrete next step. Untested areas stay explicit.',
-    prompt: 'Use foundry-audit to review the research notes app. Follow the create-and-find-a-note flow. Prioritize accessibility and confusing states. Give evidence for each finding; distinguish inspected behavior from assumptions.'
+    output: 'A prioritized audit: the problem, its evidence, its user impact, and a concrete next step. Untested areas stay explicit.'
   },
   reference: {
     title: 'Study the choices.\nMake your own.',
     description: 'Use relevant references to understand hierarchy, density, type, and interaction patterns. Extract the principles that fit your product, with sources and attribution kept intact.',
-    output: 'A reference map that connects observed design decisions to your own tokens and components, with provenance and reuse limits.',
-    prompt: 'Use foundry-reference to study the references I provide for the notes app. Compare typography, hierarchy, density, and navigation. Record source URLs and what we can adapt. Propose an original direction rather than copying a brand.'
+    output: 'A reference map that connects observed design decisions to your own tokens and components, with provenance and reuse limits.'
   },
   reconstruct: {
     title: 'From a visual.\nTo something usable.',
     description: 'Read a screenshot as a system of layout, type, spacing, and components. Rebuild the visible structure, then make explicit choices for the responsive layouts and states the image cannot show.',
-    output: 'A working interface with a visual inventory, reusable tokens, responsive rules, and a clear list of inferred behavior.',
-    prompt: 'Use foundry-reconstruct with the screenshot I attach. First inventory its layout and tokens, then implement it in the existing stack. Make the page responsive, wire its primary actions, and label assumptions about unseen states.'
+    output: 'A working interface with a visual inventory, reusable tokens, responsive rules, and a clear list of inferred behavior.'
   },
   verify: {
     title: 'Follow the flow.\nProve the result.',
     description: 'Open the interface and exercise its main task end to end. Check keyboard access, narrow screens, empty and error states, and whether saved data returns correctly when a backend is present.',
-    output: 'A verification record with steps, actual outcomes, viewport details, supporting evidence, and any checks that could not be run.',
-    prompt: 'Use foundry-verify to test creating, finding, and reopening a note. Check desktop and narrow screens, keyboard navigation, and empty states. Report actual results and failures. Do not claim browser or backend checks you cannot run.'
+    output: 'A verification record with steps, actual outcomes, viewport details, supporting evidence, and any checks that could not be run.'
   }
 };
 
@@ -44,6 +40,10 @@ const directionTabs = [...document.querySelectorAll('[data-direction]')];
 const toast = document.querySelector('#toast');
 let toastTimer;
 let currentFilter = 'all';
+let currentWorkflow = 'direction';
+let currentDirection = 'editorial';
+const promptProject = document.querySelector('#prompt-project');
+const promptGoal = document.querySelector('#prompt-goal');
 let browserStorage;
 try { browserStorage = window.localStorage; } catch {}
 const notesStore = createNotesStore(browserStorage);
@@ -81,10 +81,28 @@ function selectTab(tabs, selected) {
   });
 }
 
+function renderPrompt() {
+  const status = document.querySelector('#prompt-context-status');
+  try {
+    const prompt = buildPrompt(currentWorkflow, { project: promptProject.value, goal: promptGoal.value, direction: currentDirection });
+    document.querySelector('#workflow-prompt').textContent = prompt;
+    promptProject.setAttribute('aria-invalid', 'false');
+    promptGoal.setAttribute('aria-invalid', 'false');
+    status.textContent = promptProject.value.trim() || promptGoal.value.trim()
+      ? 'Your prompt is ready. Choose a skill, then copy it into your coding agent.'
+      : 'Add your project details to tailor this prompt.';
+  } catch (error) {
+    promptProject.setAttribute('aria-invalid', String(promptProject.value.trim().length > 80));
+    promptGoal.setAttribute('aria-invalid', String(promptGoal.value.trim().length > 160));
+    status.textContent = error.message;
+  }
+}
+
 function setWorkflow(tab) {
   const name = tab.dataset.workflow;
+  if (!Object.hasOwn(workflows, name)) return;
   const workflow = workflows[name];
-  if (!workflow) return;
+  currentWorkflow = name;
   selectTab(workflowTabs, tab);
   document.querySelector('#workflow-panel').setAttribute('aria-labelledby', tab.id);
   document.querySelector('#skill-name').textContent = `foundry-${name}`;
@@ -96,14 +114,15 @@ function setWorkflow(tab) {
   });
   document.querySelector('#workflow-description').textContent = workflow.description;
   document.querySelector('#workflow-output').textContent = workflow.output;
-  document.querySelector('#workflow-prompt').textContent = workflow.prompt;
+  renderPrompt();
   document.querySelector('#skill-source').dataset.skill = name;
 }
 
 function setDirection(tab) {
   const name = tab.dataset.direction;
+  if (!Object.hasOwn(themes, name)) return;
   const theme = themes[name];
-  if (!theme) return;
+  currentDirection = name;
   selectTab(directionTabs, tab);
   const preview = document.querySelector('#design-preview');
   preview.dataset.theme = name;
@@ -111,6 +130,17 @@ function setDirection(tab) {
   document.querySelector('#theme-summary').textContent = theme.summary;
   document.querySelector('#token-caption').textContent = theme.caption;
   document.querySelector('#token-color').style.backgroundColor = theme.color;
+  setPresentation('designed');
+  renderPrompt();
+}
+
+function setPresentation(name) {
+  if (!['basic', 'designed'].includes(name)) return;
+  document.querySelector('#design-preview').dataset.presentation = name;
+  document.querySelectorAll('[data-presentation-option]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.presentationOption === name)));
+  document.querySelector('#comparison-description').textContent = name === 'basic'
+    ? 'Basic treatment: plain surfaces and system type. Your entries and tools stay the same.'
+    : `Designed treatment: ${currentDirection[0].toUpperCase()}${currentDirection.slice(1)}. Your entries and tools stay the same.`;
 }
 
 function wireTabs(tabs, callback, vertical = false) {
@@ -232,6 +262,13 @@ function openNote(id, trigger) {
 
 wireTabs(workflowTabs, setWorkflow, true);
 wireTabs(directionTabs, setDirection);
+document.querySelectorAll('[data-presentation-option]').forEach(button => {
+  button.addEventListener('click', () => setPresentation(button.dataset.presentationOption));
+});
+promptProject.addEventListener('input', renderPrompt);
+promptGoal.addEventListener('input', renderPrompt);
+renderPrompt();
+setPresentation('designed');
 
 const artStage = document.querySelector('#hero-stage');
 const artThemeButtons = [...document.querySelectorAll('[data-art-theme-option]')];

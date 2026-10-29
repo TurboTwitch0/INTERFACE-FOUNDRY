@@ -9,6 +9,12 @@ filtering, deleting with undo, and exporting the collection as JSON. Notes stay
 in this browser using local storage when available; the workspace reports when
 changes are temporary. Resetting the demo requires a second confirmation click.
 
+Compare **Basic** and **Designed** treatments on the same working content, then
+choose Editorial, Studio, or Terminal to explore a design direction. In the
+toolkit, enter your project name and main task to tailor any of the five copyable
+prompts. Prompt composition happens locally from the bundled templates; it does
+not send your project details to an AI service.
+
 ## Run locally
 
 Requires **Node.js 20 or newer** and Git. Node 24 is the recommended deployment version. The project has no runtime dependencies; the lockfile makes installation reproducible.

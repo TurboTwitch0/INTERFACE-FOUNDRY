@@ -45,9 +45,13 @@
 
     <section class="lab-section section-space" id="lab" aria-labelledby="lab-heading">
       <div class="wrap">
-        <div class="section-heading"><div><p class="eyebrow">01 / TRY IT YOURSELF</p><h2 id="lab-heading">Your ideas.<br>Three ways to see them.</h2></div><p>Choose a direction. Make a note. Make it yours.<br>A real little workspace, with the details considered.</p></div>
-        <div class="lab-toolbar"><div class="direction-tabs" role="tablist" aria-label="Preview design direction"><button id="direction-editorial" type="button" role="tab" aria-selected="true" aria-controls="design-preview" data-direction="editorial">Editorial</button><button id="direction-studio" type="button" role="tab" aria-selected="false" aria-controls="design-preview" tabindex="-1" data-direction="studio">Studio</button><button id="direction-terminal" type="button" role="tab" aria-selected="false" aria-controls="design-preview" tabindex="-1" data-direction="terminal">Terminal</button></div><span class="demo-caption"><span class="status-dot" aria-hidden="true"></span>YOUR LOCAL WORKSPACE · NO ACCOUNT</span></div>
-        <div id="design-preview" class="design-preview" data-theme="editorial" role="tabpanel" aria-labelledby="direction-editorial" tabindex="0">
+        <div class="section-heading"><div><p class="eyebrow">01 / TRY IT YOURSELF</p><h2 id="lab-heading">Same ideas.<br>See what design changes.</h2></div><p>Compare a basic treatment with three design directions.<br>The same notes and actions, with a different point of view.</p></div>
+        <div class="lab-toolbar">
+          <div class="direction-tabs" role="tablist" aria-label="Preview design direction"><button id="direction-editorial" type="button" role="tab" aria-selected="true" aria-controls="design-preview" data-direction="editorial">Editorial</button><button id="direction-studio" type="button" role="tab" aria-selected="false" aria-controls="design-preview" tabindex="-1" data-direction="studio">Studio</button><button id="direction-terminal" type="button" role="tab" aria-selected="false" aria-controls="design-preview" tabindex="-1" data-direction="terminal">Terminal</button></div>
+          <div class="presentation-switch" role="group" aria-label="Compare visual treatments"><span>Compare</span><button type="button" data-presentation-option="basic" aria-pressed="false">Basic</button><button type="button" data-presentation-option="designed" aria-pressed="true">Designed</button></div>
+        </div>
+        <div class="comparison-context"><p id="comparison-description">The same content, in two visual treatments. Switch to Basic to compare, or choose a design direction above.</p><span class="demo-caption"><span class="status-dot" aria-hidden="true"></span>WORKING NOTES · NO ACCOUNT</span></div>
+        <div id="design-preview" class="design-preview" data-theme="editorial" data-presentation="designed" role="tabpanel" aria-labelledby="direction-editorial" tabindex="0">
           <aside class="preview-sidebar" aria-label="Demo workspace information"><div class="preview-logo"><span aria-hidden="true">◈</span> fieldnotes</div><div class="workspace-label">YOUR WORKSPACE</div><div class="sidebar-item active"><span aria-hidden="true">▦</span> All entries <span id="sidebar-count">3</span></div><div class="sidebar-note"><span aria-hidden="true">↗</span><p>A small home for<br>your next big idea.</p></div><div class="sidebar-profile"><span class="avatar" aria-hidden="true">Y</span><span>Your workspace<small>Local browser demo</small></span></div></aside>
           <div class="preview-main">
             <div class="preview-breadcrumb">WORKSPACE <span>/</span> COLLECTION</div>
@@ -87,8 +91,13 @@
           <h3 id="workflow-title">Set a direction.<br>Then commit to it.</h3>
           <p id="workflow-description">Define the audience, the main task, and a visual point of view. Turn those decisions into a small set of design tokens that your agent can actually follow.</p>
           <div class="output"><span class="eyebrow">YOU WALK AWAY WITH</span><p id="workflow-output">A DESIGN.md with typography, color, spacing, interaction rules, and the reasons behind them.</p></div>
-          <div class="prompt-heading"><span class="eyebrow">TRY THIS PROMPT</span><button class="copy-button" id="copy-prompt" type="button">Copy prompt <span aria-hidden="true">⧉</span></button></div>
-          <pre class="prompt-box" id="workflow-prompt">Use foundry-direction to define a calm, editorial interface for a research notes app. Prioritize scanning and retrieval. Create DESIGN.md before changing components.</pre>
+          <div class="prompt-customizer">
+            <p class="prompt-customizer-title">Make this prompt yours.</p>
+            <div class="prompt-context-fields"><label for="prompt-project">Project name<input id="prompt-project" type="text" maxlength="80" placeholder="My booking app" autocomplete="off" aria-describedby="prompt-context-status"></label><label for="prompt-goal">Main task<input id="prompt-goal" type="text" maxlength="160" placeholder="Help visitors reserve a class" autocomplete="off" aria-describedby="prompt-context-status"></label></div>
+            <p id="prompt-context-status" role="status" aria-live="polite">Add your project details to tailor this prompt.</p>
+          </div>
+          <div class="prompt-heading"><span class="eyebrow">YOUR STARTING PROMPT</span><button class="copy-button" id="copy-prompt" type="button">Copy prompt <span aria-hidden="true">⧉</span></button></div>
+          <pre class="prompt-box" id="workflow-prompt">Use foundry-direction to define the audience, main task, and visual direction for my project. Create DESIGN.md with typography, color, spacing, and interaction rules before changing components.</pre>
           <button type="button" class="skill-source" id="skill-source" data-skill="direction">Read the complete skill <span aria-hidden="true">↗</span></button>
         </article>
       </div>

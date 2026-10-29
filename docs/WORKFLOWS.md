@@ -94,6 +94,12 @@ and complete the checks that are available.
 
 ## Explore the included example
 
+Use Basic/Designed to compare visual treatments without changing the entries.
+Enter a project name and main task in the toolkit panel, choose a skill, and copy
+the tailored prompt into your coding agent. The Direction prompt also uses the
+selected Editorial, Studio, or Terminal treatment; the other skills focus on
+their task rather than prescribing a style.
+
 Run `npm start` from the toolkit root and open the printed local address. The
 design lab changes the same notes workspace between Editorial, Studio, and
 Terminal treatments. Create an entry, edit it, search for it, reload to check
