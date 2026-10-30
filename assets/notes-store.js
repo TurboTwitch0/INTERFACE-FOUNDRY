@@ -63,6 +63,7 @@ export function createNotesStore(storage) {
   let persistent = false;
   let lastSaveSucceeded = false;
   let canWrite = false;
+  let damagedCollection = false;
 
   // A failed read must not overwrite an inaccessible, possibly valid collection.
   if (storage !== undefined && storage !== null) {
@@ -71,7 +72,11 @@ export function createNotesStore(storage) {
       const saved = storage.getItem(STORAGE_KEY);
       canWrite = true;
       if (saved !== null && saved !== undefined) {
-        try { notes = load(saved); } catch { notes = defaults(); }
+        try { notes = load(saved); } catch {
+          // Keep the original bytes available for recovery until an explicit reset.
+          notes = defaults();
+          damagedCollection = true;
+        }
       }
     } catch { canWrite = false; }
   }
@@ -79,7 +84,7 @@ export function createNotesStore(storage) {
   function save() {
     persistent = false;
     lastSaveSucceeded = false;
-    if (!canWrite) return;
+    if (!canWrite || damagedCollection) return;
     try {
       storage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, notes }));
       persistent = true;
@@ -101,6 +106,7 @@ export function createNotesStore(storage) {
   const store = {
     get persistent() { return persistent; },
     get lastSaveSucceeded() { return lastSaveSucceeded; },
+    get damagedCollection() { return damagedCollection; },
     list() { return notes.map(clone); },
     create(value) {
       const content = fields(value);
@@ -140,6 +146,7 @@ export function createNotesStore(storage) {
     },
     reset() {
       notes = defaults();
+      damagedCollection = false;
       save();
       return notes.map(clone);
     },
