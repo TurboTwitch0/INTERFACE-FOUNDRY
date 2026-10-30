@@ -114,6 +114,26 @@ test('denied reads and writes remain usable in memory and never claim persistenc
   assert.equal(createNotesStore({}).persistent, false);
 });
 
+test('damaged collections are preserved across startup and edits until an explicit reset', () => {
+  for (const original of ['{broken', JSON.stringify({ version: 2, notes: [{ title: 'Recover me' }] })]) {
+    const storage = memoryStorage(original);
+    const store = createNotesStore(storage);
+    assert.equal(store.damagedCollection, true);
+    assert.equal(store.persistent, false);
+    assert.equal(storage.getItem(STORAGE_KEY), original);
+    const note = store.create(valid({ title: 'Session-only idea' }));
+    store.update(note.id, { body: 'Still exportable' });
+    store.remove(DEFAULT_NOTES[0].id);
+    assert.equal(storage.getItem(STORAGE_KEY), original);
+    assert.equal(store.list()[0].body, 'Still exportable');
+    assert.equal(store.lastSaveSucceeded, false);
+    store.reset();
+    assert.equal(store.damagedCollection, false);
+    assert.equal(store.persistent, true);
+    assert.deepEqual(createNotesStore(storage).list(), DEFAULT_NOTES);
+  }
+});
+
 test('returned objects, input objects and defaults cannot mutate internal state', () => {
   const store = createNotesStore();
   const input = valid();

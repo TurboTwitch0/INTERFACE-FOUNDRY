@@ -374,6 +374,29 @@ test('storage failure keeps notes usable and exportable, then a later successful
   assert.equal(JSON.parse(saved.getItem(STORAGE_KEY)).notes.length, 4);
 });
 
+test('damaged saved notes remain recoverable while temporary notes can be exported', async t => {
+  const storage = memoryStorage();
+  const original = '{"version":2,"notes":[{"title":"Recover me"}]}';
+  storage.setItem(STORAGE_KEY, original);
+  const app = await loadApp({ storage });
+  t.after(app.dispose);
+  assert.match(app.get('#workspace-status').textContent, /original data is preserved/i);
+  app.get('#new-note').click();
+  app.get('#note-title').value = 'Temporary recovery note';
+  app.get('#note-kind').value = 'note';
+  app.get('#note-form').emit('submit');
+  await settle();
+  assert.equal(storage.getItem(STORAGE_KEY), original);
+  app.get('#export-notes').click();
+  const exported = JSON.parse(await app.blobs.get(app.document.downloads.at(-1).href).text());
+  assert.ok(exported.notes.some(note => note.title === 'Temporary recovery note'));
+  app.get('#reset-notes').click();
+  assert.equal(storage.getItem(STORAGE_KEY), original);
+  app.get('#reset-notes').click();
+  assert.match(app.get('#workspace-status').textContent, /saved in this browser/i);
+  assert.equal(JSON.parse(storage.getItem(STORAGE_KEY)).notes.length, 3);
+});
+
 test('empty collections, unmatched searches, and reset confirmation have distinct safe outcomes', async t => {
   const storage = memoryStorage();
   storage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, notes: [] }));
