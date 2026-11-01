@@ -219,7 +219,9 @@ function updateEntries() {
   const empty = document.querySelector('#empty-notes');
   empty.hidden = visible.length > 0;
   empty.textContent = all.length ? 'No entries match. Try another search or filter.' : 'A blank page, ready for your next idea. Create a note to begin.';
-  document.querySelector('#workspace-status').textContent = notesStore.persistent ? 'Notes saved in this browser.' : 'Notes are temporary. Browser storage is unavailable; export to keep a copy.';
+  document.querySelector('#workspace-status').textContent = notesStore.damagedCollection
+    ? 'Saved notes could not be read. The original data is preserved. These notes are temporary; export to keep them, or use Reset demo to replace the damaged collection.'
+    : notesStore.persistent ? 'Notes saved in this browser.' : 'Notes are temporary. Browser storage is unavailable; export to keep a copy.';
 }
 
 function cancelReset() {
