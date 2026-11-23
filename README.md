@@ -9,6 +9,13 @@ filtering, deleting with undo, and exporting the collection as JSON. Notes stay
 in this browser using local storage when available; the workspace reports when
 changes are temporary. Resetting the demo requires a second confirmation click.
 
+If another tab changes the saved collection before this tab writes, its newer
+bytes are preserved and this tab keeps its edits temporarily. Export those edits
+before using **Reload saved notes**, which asks for confirmation. A detected
+conflict remains until reload, including after Reset demo. This read-before-write
+check is best effort: local storage offers no atomic compare-and-set or guarantee
+against simultaneous writes from separate browser processes.
+
 Compare **Basic** and **Designed** treatments on the same working content, then
 choose Editorial, Studio, or Terminal to explore a design direction. In the
 toolkit, enter your project name and main task to tailor any of the five copyable

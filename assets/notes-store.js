@@ -64,12 +64,15 @@ export function createNotesStore(storage) {
   let lastSaveSucceeded = false;
   let canWrite = false;
   let damagedCollection = false;
+  let confirmedRaw;
+  let storageConflict = false;
 
   // A failed read must not overwrite an inaccessible, possibly valid collection.
   if (storage !== undefined && storage !== null) {
     try {
       if (typeof storage.getItem !== 'function') throw new TypeError('Storage has no getItem method.');
       const saved = storage.getItem(STORAGE_KEY);
+      confirmedRaw = saved;
       canWrite = true;
       if (saved !== null && saved !== undefined) {
         try { notes = load(saved); } catch {
@@ -84,9 +87,17 @@ export function createNotesStore(storage) {
   function save() {
     persistent = false;
     lastSaveSucceeded = false;
-    if (!canWrite || damagedCollection) return;
+    if (!canWrite || damagedCollection || storageConflict) return;
     try {
-      storage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, notes }));
+      // Detect a newer snapshot before replacing it. localStorage has no atomic
+      // compare-and-set: this is a conservative stale-write check, not a lock.
+      if (storage.getItem(STORAGE_KEY) !== confirmedRaw) {
+        storageConflict = true;
+        return;
+      }
+      const encoded = JSON.stringify({ version: 1, notes });
+      storage.setItem(STORAGE_KEY, encoded);
+      confirmedRaw = encoded;
       persistent = true;
       lastSaveSucceeded = true;
     } catch { /* Keep the current in-memory collection even if persistence fails. */ }
@@ -107,6 +118,7 @@ export function createNotesStore(storage) {
     get persistent() { return persistent; },
     get lastSaveSucceeded() { return lastSaveSucceeded; },
     get damagedCollection() { return damagedCollection; },
+    get storageConflict() { return storageConflict; },
     list() { return notes.map(clone); },
     create(value) {
       const content = fields(value);

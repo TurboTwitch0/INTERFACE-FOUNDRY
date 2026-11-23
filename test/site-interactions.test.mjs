@@ -166,7 +166,8 @@ async function loadApp({ storage = memoryStorage(), fetch: fetchStub = async () 
     localStorage: storage, isSecureContext: true,
     addEventListener(name, handler) { listeners.set(name, handler); },
     getSelection() { return { removeAllRanges() {}, addRange() {} }; },
-    confirm() { return true; }
+    confirm() { return true; },
+    reloads: 0, location: { reload() { window.reloads++; } }
   };
   const replacements = {
     document, window, localStorage: storage, navigator: { clipboard: { writeText: async text => copied.push(text) } },
@@ -194,7 +195,7 @@ async function loadApp({ storage = memoryStorage(), fetch: fetchStub = async () 
     await import(new URL(`../assets/app.js?fixture=${++instance}`, import.meta.url));
     await settle();
   } catch (error) { dispose(); throw error; }
-  return { document, storage, copied, blobs, dispose, get: selector => document.querySelector(selector), all: selector => document.querySelectorAll(selector) };
+  return { document, window, storage, copied, blobs, dispose, get: selector => document.querySelector(selector), all: selector => document.querySelectorAll(selector) };
 }
 
 test('workflow keyboard navigation, visual directions, and agent install controls remain connected', async t => {
@@ -524,4 +525,39 @@ test('project context personalizes workflow prompts and invalid lengths keep the
   assert.match(app.get('#workflow-prompt').textContent, /foundry-audit/);
   assert.ok(app.get('#workflow-prompt').textContent.includes(project));
   assert.ok(app.get('#workflow-prompt').textContent.includes(goal));
+});
+
+
+test('conflicting notes remain exportable and reload requires an explicit confirmation', async t => {
+  const storage = memoryStorage();
+  let app = await loadApp({ storage });
+  t.after(() => app.dispose());
+  const peer = JSON.stringify({ version: 1, notes: [{ id: 'peer', kind: 'note', title: 'Saved in another tab', body: 'Keep this collection.' }] });
+  storage.setItem(STORAGE_KEY, peer);
+  app.get('#new-note').click();
+  app.get('#note-title').value = 'Temporary local idea';
+  app.get('#note-form').emit('submit');
+  await settle();
+  assert.equal(storage.getItem(STORAGE_KEY), peer);
+  assert.match(app.get('#workspace-status').textContent, /changed in another tab.*temporary.*Export.*reload/i);
+  assert.equal(app.get('#reload-notes').hidden, false);
+  app.get('#export-notes').click();
+  const exported = JSON.parse(await app.blobs.get(app.document.downloads.at(-1).href).text());
+  assert.ok(exported.notes.some(note => note.title === 'Temporary local idea'));
+  app.get('#reset-notes').click();
+  app.get('#reset-notes').click();
+  assert.equal(storage.getItem(STORAGE_KEY), peer);
+  assert.match(app.get('#workspace-status').textContent, /changed in another tab/);
+  app.window.confirm = () => false;
+  app.get('#reload-notes').click();
+  assert.equal(app.window.reloads, 0);
+  app.window.confirm = () => true;
+  app.get('#reload-notes').click();
+  assert.equal(app.window.reloads, 1);
+  app.dispose();
+  app = await loadApp({ storage });
+  assert.equal(app.all('.note-card').length, 1);
+  assert.match(app.get('.note-card').textContent, /Saved in another tab/);
+  assert.equal(app.get('#reload-notes').hidden, true);
+  assert.match(app.get('#workspace-status').textContent, /saved in this browser/);
 });

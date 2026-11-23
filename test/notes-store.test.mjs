@@ -4,7 +4,7 @@ import { createNotesStore, DEFAULT_NOTES, MAX_NOTES, STORAGE_KEY } from '../asse
 
 function memoryStorage(initial) {
   const values = new Map(initial === undefined ? [] : [[STORAGE_KEY, initial]]);
-  return { getItem(key) { return values.get(key) ?? null; }, setItem(key, value) { values.set(key, String(value)); } };
+  return { getItem(key) { return values.get(key) ?? null; }, setItem(key, value) { values.set(key, String(value)); }, removeItem(key) { values.delete(key); } };
 }
 const valid = overrides => ({ kind: 'note', title: 'A useful observation', body: 'Specific evidence matters.', ...overrides });
 
@@ -196,4 +196,78 @@ test('ID fallback works without browser crypto and uses distinct timestamp/count
     if (descriptor) Object.defineProperty(globalThis, 'crypto', descriptor);
     else delete globalThis.crypto;
   }
+});
+
+
+test('a stale store preserves newer saved bytes and retains its own edits for export', () => {
+  const storage = memoryStorage();
+  const first = createNotesStore(storage);
+  const stale = createNotesStore(storage);
+  first.create(valid({ title: 'Saved in the first tab' }));
+  const newer = storage.getItem(STORAGE_KEY);
+  const temporary = stale.create(valid({ title: 'Temporary second-tab idea' }));
+  assert.equal(storage.getItem(STORAGE_KEY), newer);
+  assert.equal(stale.storageConflict, true);
+  assert.equal(stale.persistent, false);
+  assert.equal(stale.lastSaveSucceeded, false);
+  assert.ok(stale.list().some(note => note.id === temporary.id));
+  stale.update(temporary.id, { body: 'Still editable without overwriting the first tab.' });
+  const removed = stale.remove(DEFAULT_NOTES[0].id);
+  stale.restore(removed, 1);
+  assert.equal(storage.getItem(STORAGE_KEY), newer, 'all later saves remain blocked for this instance');
+  stale.reset();
+  assert.equal(stale.storageConflict, true, 'reset must not unlock a stale instance');
+  assert.equal(storage.getItem(STORAGE_KEY), newer);
+  const reloaded = createNotesStore(storage);
+  assert.equal(reloaded.storageConflict, false);
+  assert.equal(reloaded.persistent, true);
+  assert.ok(reloaded.list().some(note => note.title === 'Saved in the first tab'));
+});
+
+test('a collection arriving between the startup read and initial save is not overwritten', () => {
+  const newer = JSON.stringify({ version: 1, notes: [{ id: 'peer', ...valid({ title: 'Arrived during startup' }) }] });
+  let reads = 0, writes = 0;
+  const store = createNotesStore({ getItem() { return ++reads === 1 ? null : newer; }, setItem() { writes++; } });
+  assert.equal(store.storageConflict, true);
+  assert.equal(store.persistent, false);
+  assert.equal(writes, 0, 'the exact initial null snapshot is compared before writing defaults');
+});
+
+test('external removal is a conflict rather than permission to resurrect an older collection', () => {
+  const storage = memoryStorage();
+  const store = createNotesStore(storage);
+  storage.removeItem(STORAGE_KEY);
+  store.create(valid());
+  assert.equal(store.storageConflict, true);
+  assert.equal(storage.getItem(STORAGE_KEY), null);
+  assert.equal(store.persistent, false);
+});
+
+test('failed read-before-write keeps stored data and permits recovery only after a successful read', () => {
+  const saved = memoryStorage();
+  let denyRead = false, writes = 0;
+  const storage = { getItem(key) { if (denyRead) throw new Error('Read denied'); return saved.getItem(key); }, setItem(key, value) { writes++; saved.setItem(key, value); } };
+  const store = createNotesStore(storage);
+  const original = saved.getItem(STORAGE_KEY), originalWrites = writes;
+  denyRead = true;
+  const note = store.create(valid());
+  assert.equal(writes, originalWrites);
+  assert.equal(saved.getItem(STORAGE_KEY), original);
+  assert.equal(store.persistent, false);
+  denyRead = false;
+  store.update(note.id, { title: 'Read access recovered' });
+  assert.equal(store.persistent, true);
+  assert.equal(store.storageConflict, false);
+  assert.ok(createNotesStore(saved).list().some(note => note.title === 'Read access recovered'));
+});
+
+test('damaged-data reset preserves a collection repaired by another tab in the meantime', () => {
+  const storage = memoryStorage('{damaged');
+  const store = createNotesStore(storage);
+  const repaired = JSON.stringify({ version: 1, notes: [{ id: 'peer', ...valid({ title: 'Recovered elsewhere' }) }] });
+  storage.setItem(STORAGE_KEY, repaired);
+  store.reset();
+  assert.equal(store.storageConflict, true);
+  assert.equal(store.persistent, false);
+  assert.equal(storage.getItem(STORAGE_KEY), repaired);
 });

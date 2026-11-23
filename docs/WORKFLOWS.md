@@ -105,7 +105,10 @@ design lab changes the same notes workspace between Editorial, Studio, and
 Terminal treatments. Create an entry, edit it, search for it, reload to check
 local persistence, then delete and undo the deletion. Entries stay in this
 browser when storage is available; export JSON to keep a separate copy. The
-workspace reports when edits are temporary. These are local records rather than
+workspace reports when edits are temporary. If a newer collection is detected in
+another tab before saving, export this tab’s temporary edits, then use Reload
+saved notes and confirm to load that newer collection. The stale-write check is
+best effort rather than atomic cross-tab synchronization. These are local records rather than
 an account-backed or synchronized application.
 
 The complete skill dialog reads generated Markdown from `data/skills.json`.
